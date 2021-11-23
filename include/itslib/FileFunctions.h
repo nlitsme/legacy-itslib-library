@@ -19,6 +19,12 @@ typedef FILE* FFHANDLE;
 typedef HANDLE FFHANDLE;
 #endif
 
+#define AT_NONEXISTANT      1
+#define AT_ISDIRECTORY      2
+#define AT_ISFILE           3
+#define AT_ISSTREAM         4
+
+
 template<typename T>
 bool WriteFileData(const std::basic_string<T>& filename, const ByteVector& data)
 {
@@ -213,11 +219,6 @@ bool ReadDword(FFHANDLE f, uint32_t &w);
 bool ReadData(FFHANDLE f, ByteVector& data, size_t size=size_t(~0));
 bool WriteData(FFHANDLE f, const ByteVector& data);
 bool WriteDword(FFHANDLE f, uint32_t w);
-
-#define AT_NONEXISTANT      1
-#define AT_ISDIRECTORY      2
-#define AT_ISFILE           3
-#define AT_ISSTREAM         4
 
 template<typename T>
 int GetFileInfo(const std::basic_string<T>& path)
