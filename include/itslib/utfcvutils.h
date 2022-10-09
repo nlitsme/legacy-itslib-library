@@ -6,6 +6,12 @@
 #endif
 #include <stdint.h>
 
+#ifndef _WIN32
+#define NON_NULL __nonnull((1))
+#else
+#define NON_NULL
+#endif
+
 typedef uint8_t utf8char_t;
 typedef uint16_t utf16char_t;
 typedef uint32_t utf32char_t;
@@ -17,27 +23,27 @@ typedef uint32_t utf32char_t;
 //   the Xcharcount(const X*)  functions return the nr of symbols
 
 #define AUTOSIZE static_cast<size_t>(-1)
-size_t utf8toutf32bytesneeded(const utf8char_t *p) __nonnull((1));
+size_t utf8toutf32bytesneeded(const utf8char_t *p) NON_NULL;
 size_t utf8toutf32(const utf8char_t *p8, utf32char_t *p32, size_t maxsize=AUTOSIZE);
 
-size_t utf32toutf8bytesneeded(const utf32char_t *p) __nonnull((1));
+size_t utf32toutf8bytesneeded(const utf32char_t *p) NON_NULL;
 size_t utf32toutf8(const utf32char_t *p32, utf8char_t *p8, size_t maxsize=AUTOSIZE);
 
-size_t utf16toutf32bytesneeded(const utf16char_t *p) __nonnull((1));
+size_t utf16toutf32bytesneeded(const utf16char_t *p) NON_NULL;
 size_t utf16toutf32(const utf16char_t *p16, utf32char_t *p32, size_t maxsize=AUTOSIZE);
 
-size_t utf32toutf16bytesneeded(const utf32char_t *p) __nonnull((1));
+size_t utf32toutf16bytesneeded(const utf32char_t *p) NON_NULL;
 size_t utf32toutf16(const utf32char_t *p32, utf16char_t *p16, size_t maxsize=AUTOSIZE);
 
-size_t utf8toutf16bytesneeded(const utf8char_t *p) __nonnull((1));
+size_t utf8toutf16bytesneeded(const utf8char_t *p) NON_NULL;
 size_t utf8toutf16(const utf8char_t *p8, utf16char_t *p16, size_t maxsize=AUTOSIZE);
 
-size_t utf16toutf8bytesneeded(const utf16char_t *p) __nonnull((1));
+size_t utf16toutf8bytesneeded(const utf16char_t *p) NON_NULL;
 size_t utf16toutf8(const utf16char_t *p16, utf8char_t *p8, size_t maxsize=AUTOSIZE);
 
-size_t utf8charcount(const utf8char_t *p) __nonnull((1));
-size_t utf32charcount(const utf32char_t *p) __nonnull((1));
-size_t utf16charcount(const utf16char_t *p) __nonnull((1));
+size_t utf8charcount(const utf8char_t *p) NON_NULL;
+size_t utf32charcount(const utf32char_t *p) NON_NULL;
+size_t utf16charcount(const utf16char_t *p) NON_NULL;
 
 int utf8stringcompare(const utf8char_t *l, const utf8char_t *r) __nonnull((1, 2));
 int utf16stringcompare(const utf16char_t *l, const utf16char_t *r) __nonnull((1, 2));
