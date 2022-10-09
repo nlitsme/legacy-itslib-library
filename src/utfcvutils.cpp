@@ -411,7 +411,7 @@ size_t utf16bytesneeded(const utf32char_t *p)
         n += utf16bytesneeded(*p++);
     return n;
 }
-size_t utf16charcount(const utf16char_t *p)
+size_t utf16charcount(const utf16char_t *p  __nonnull((1)))
 {
     size_t n=0;
     while (uint16_t c= *p++)
