@@ -18,6 +18,9 @@
 #include <sys/ioctl.h>
 #endif
 #include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+#endif
 
 class BlockDevice : public ReadWriter {
     int _f;

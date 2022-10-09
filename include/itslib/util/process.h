@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <thread>
 #include <chrono>
+#include <functional>
 
 #include "util/logmsg.h"
 #include "util/HiresTimer.h"
