@@ -40,7 +40,7 @@ void *DV_GetPtr(DwordVector::const_iterator& i)
 
         ptr= (void*)i64;
 #else
-#pragma error("__POIINTER_WIDTH__ must be 32 or 64")
+#pragma error("__POINTER_WIDTH__ must be 32 or 64")
 #endif
     return ptr;
 }
