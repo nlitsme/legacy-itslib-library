@@ -38,6 +38,9 @@ struct TIME_ZONE_INFORMATION {
 
 #else
 #define INVALID_HANDLE_VALUE 0xFFFFFFFF
+typedef uint32_t DWORD;
+typedef uint8_t BYTE;
+typedef int32_t LONG;
 
 typedef uint16_t WCHAR;
 #ifndef __CYGWIN__
