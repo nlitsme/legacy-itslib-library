@@ -128,93 +128,6 @@ inline uint64_t GetFileSize(FFHANDLE h)
     return eofoff;
 #endif
 }
-template<typename T, typename V>
-bool LoadFileData(const std::basic_string<T>& filename, V& data, uint64_t off=0, size_t size=size_t(-1))
-{
-    FFHANDLE h;
-    if (!OpenFileForReading(filename, h))
-        return false;
-#ifdef _WIN32
-    DWORD fsHigh;
-    DWORD fsLow= GetFileSize(h, &fsHigh);
-    uint64_t eofpos=((uint64_t)fsHigh<<32)|(uint64_t)fsLow;
-
-    if (off>eofpos) {
-        debug("offset too large ( > 0x%Lx )\n", eofpos);
-        CloseHandle(h);
-        return false;
-    }
-    if (size==size_t(-1))
-        size= size_t(eofpos-off);
-    else if (size>size_t(eofpos-off))
-        size= size_t(eofpos-off);
-    data.resize(size/sizeof(V::value_type));
-
-    LONG offHigh= LONG(off>>32);
-    LONG offLow= LONG(off&0xFFFFFFFF);
-    DWORD res= SetFilePointer(h, offLow, &offHigh, FILE_BEGIN);
-    if (res==INVALID_SET_FILE_POINTER && GetLastError()!=NO_ERROR)
-    {
-        error("LoadFileData: invalid offset %x%08lx\n", offHigh, offLow);
-        CloseHandle(h);
-        return false;
-    }
-
-    DWORD read=0;
-    if (!data.empty() && !ReadFile(h, &data[0], data.size()*sizeof(V::value_type), &read, NULL))
-    {
-        CloseHandle(h);
-        return false;
-    }
-    data.resize(read/sizeof(V::value_type));
-    if (!CloseHandle(h))
-    {
-        error("LoadFileData: CloseHandle");
-        return false;
-    }
-
-#else
-    if (fseeko(h, 0, SEEK_END)) {
-        error("fseek");
-        return false;
-    }
-    uint64_t eofpos= ftello(h);;
-//  if (fgetpos(h, &eofpos)) {
-//      error("fgetpos");
-//      return false;
-//  }
-    if (off>eofpos) {
-        debug("offset too large ( > 0x%Lx )\n", eofpos);
-        fclose(h);
-        return false;
-    }
-    if (fseeko(h, off, SEEK_SET)) {
-        error("fseek");
-        fclose(h);
-        return false;
-    }
-    if (size==size_t(-1))
-        size= eofpos-off;
-    else if (size>size_t(eofpos-off))
-        size= eofpos-off;
-    data.resize(size/sizeof(typename V::value_type));
-    if (!data.empty() && 1!=fread(&data[0], data.size()*sizeof(typename V::value_type), 1, h)) {
-        fclose(h);
-        error("fread");
-        return false;
-    }
-    if (fclose(h)) {
-        error("fclose");
-        return false;
-    }
-#endif
-    return true;
-}
-template<typename T>
-bool LoadFileData(const T* filename, ByteVector& data, uint64_t off=0, size_t size=size_t(-1))
-{
-    return LoadFileData(std::basic_string<T>(filename), data, off, size);
-}
 bool ReadDword(FFHANDLE f, uint32_t &w);
 bool ReadData(FFHANDLE f, ByteVector& data, size_t size=size_t(~0));
 bool WriteData(FFHANDLE f, const ByteVector& data);
@@ -422,6 +335,93 @@ inline void CloseFile(FFHANDLE h)
 #else
     fclose(h);
 #endif
+}
+template<typename T, typename V>
+bool LoadFileData(const std::basic_string<T>& filename, V& data, uint64_t off=0, size_t size=size_t(-1))
+{
+    FFHANDLE h;
+    if (!OpenFileForReading(filename, h))
+        return false;
+#ifdef _WIN32
+    DWORD fsHigh;
+    DWORD fsLow= GetFileSize(h, &fsHigh);
+    uint64_t eofpos=((uint64_t)fsHigh<<32)|(uint64_t)fsLow;
+
+    if (off>eofpos) {
+        debug("offset too large ( > 0x%Lx )\n", eofpos);
+        CloseHandle(h);
+        return false;
+    }
+    if (size==size_t(-1))
+        size= size_t(eofpos-off);
+    else if (size>size_t(eofpos-off))
+        size= size_t(eofpos-off);
+    data.resize(size/sizeof(V::value_type));
+
+    LONG offHigh= LONG(off>>32);
+    LONG offLow= LONG(off&0xFFFFFFFF);
+    DWORD res= SetFilePointer(h, offLow, &offHigh, FILE_BEGIN);
+    if (res==INVALID_SET_FILE_POINTER && GetLastError()!=NO_ERROR)
+    {
+        error("LoadFileData: invalid offset %x%08lx\n", offHigh, offLow);
+        CloseHandle(h);
+        return false;
+    }
+
+    DWORD read=0;
+    if (!data.empty() && !ReadFile(h, &data[0], data.size()*sizeof(V::value_type), &read, NULL))
+    {
+        CloseHandle(h);
+        return false;
+    }
+    data.resize(read/sizeof(V::value_type));
+    if (!CloseHandle(h))
+    {
+        error("LoadFileData: CloseHandle");
+        return false;
+    }
+
+#else
+    if (fseeko(h, 0, SEEK_END)) {
+        error("fseek");
+        return false;
+    }
+    uint64_t eofpos= ftello(h);;
+//  if (fgetpos(h, &eofpos)) {
+//      error("fgetpos");
+//      return false;
+//  }
+    if (off>eofpos) {
+        debug("offset too large ( > 0x%Lx )\n", eofpos);
+        fclose(h);
+        return false;
+    }
+    if (fseeko(h, off, SEEK_SET)) {
+        error("fseek");
+        fclose(h);
+        return false;
+    }
+    if (size==size_t(-1))
+        size= eofpos-off;
+    else if (size>size_t(eofpos-off))
+        size= eofpos-off;
+    data.resize(size/sizeof(typename V::value_type));
+    if (!data.empty() && 1!=fread(&data[0], data.size()*sizeof(typename V::value_type), 1, h)) {
+        fclose(h);
+        error("fread");
+        return false;
+    }
+    if (fclose(h)) {
+        error("fclose");
+        return false;
+    }
+#endif
+    return true;
+}
+template<typename T>
+bool LoadFileData(const T* filename, ByteVector& data, uint64_t off=0, size_t size=size_t(-1))
+{
+    return LoadFileData(std::basic_string<T>(filename), data, off, size);
 }
 
 uint64_t GetFilesystemFreeSpace(const std::string& path);
