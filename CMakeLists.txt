@@ -7,11 +7,11 @@ list(APPEND ITSLIBSRC debug.cpp stringutils.cpp utfcvutils.cpp vectorutils.cpp F
 list(TRANSFORM ITSLIBSRC PREPEND src/)
 add_library(itslib STATIC ${ITSLIBSRC})
 target_include_directories(itslib PUBLIC include/itslib)
-# NOTE: silence this warning because we still use std::iterator<...>
-# in util/chariterators.h and util/endianutil.h
-target_compile_options(itslib PUBLIC -Wno-deprecated-declarations)
 target_compile_definitions(itslib PUBLIC _NO_RAPI _NO_WINDOWS)
 if(NOT WIN32)
+    # NOTE: silence this warning because we still use std::iterator<...>
+    # in util/chariterators.h and util/endianutil.h
+    target_compile_options(itslib PUBLIC -Wno-deprecated-declarations)
     target_compile_definitions(itslib PUBLIC _UNIX)
 endif()
 
