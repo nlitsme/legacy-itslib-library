@@ -13,6 +13,7 @@
  */
 #include "vectorutils.h"
 #include "debug.h"
+#if 0
 void DV_AppendPtr(DwordVector& v, void *ptr)
 {
     if (sizeof(ptr)<=4) {
@@ -40,14 +41,9 @@ void *DV_GetPtr(DwordVector::const_iterator& i)
 
         ptr= (void*)i64;
 #else
-#pragma error("__POINTER_WIDTH__ must be 32 or 64")
+#error "__POINTER_WIDTH__ must be 32 or 64"
 #endif
     return ptr;
-}
-
-void BV_AppendByte(ByteVector& v, uint8_t value)
-{
-    v.push_back(value);
 }
 
 void BV_AppendBytes(ByteVector& v, const uint8_t *value, int len)
@@ -56,17 +52,6 @@ void BV_AppendBytes(ByteVector& v, const uint8_t *value, int len)
 	    v.push_back(*value++);
 }
 
-void BV_AppendWord(ByteVector& v, uint16_t value)
-{
-    BV_AppendByte(v, uint8_t(value));
-    BV_AppendByte(v, uint8_t(value>>8));
-}
-
-void BV_AppendDword(ByteVector& v, uint32_t value)
-{
-    BV_AppendWord(v, uint16_t(value));
-    BV_AppendWord(v, uint16_t(value>>16));
-}
 void BV_AppendQword(ByteVector& v, uint64_t value)
 {
     BV_AppendDword(v, uint32_t(value));
@@ -104,12 +89,6 @@ void BV_AppendTString(ByteVector& v, const std::tstring& s)
         BV_AppendByte(v, uint8_t(*i));
 #endif
 }
-void BV_AppendWString(ByteVector& v, const std::Wstring& s)
-{
-    for (std::Wstring::const_iterator i= s.begin() ; i!=s.end() ; ++i)
-        BV_AppendWord(v, uint16_t(*i));
-}
-
 void BV_AppendRange(ByteVector& v, const ByteVector::const_iterator& begin, const ByteVector::const_iterator& end)
 {
     v.insert(v.end(), begin, end);
@@ -142,32 +121,11 @@ ByteVector BV_FromBuffer(uint8_t* buf, int len)
 {
     return ByteVector(buf, buf+len);
 }
-ByteVector BV_FromDword(uint32_t value)
-{
-    return ByteVector((uint8_t*)&value, 4+(uint8_t*)&value);
-}
 ByteVector BV_FromString(const std::string& str)
 {
     if (str.empty())
         return ByteVector();
     return ByteVector((uint8_t*)iteratorptr(str.begin()), (uint8_t*)(iteratorptr(str.end()-1)+1));
-}
-ByteVector BV_FromWString(const std::Wstring& wstr)
-{
-    if (wstr.empty())
-        return ByteVector();
-    return ByteVector((uint8_t*)iteratorptr(wstr.begin()), (uint8_t*)(iteratorptr(wstr.end()-1)+1));
-}
-
-
-uint8_t BV_GetByte(const ByteVector& bv)
-{
-    ByteVector::const_iterator i= bv.begin();
-    return BV_GetByte(i);
-}
-uint8_t BV_GetByte(ByteVector::const_iterator &i)
-{
-    return *i++;
 }
 
 uint16_t BV_GetNetWord(const ByteVector& bv)
@@ -179,19 +137,6 @@ uint16_t BV_GetNetWord(ByteVector::const_iterator &i)
 {
     uint16_t w= BV_GetByte(i)<<8;
     w= w | BV_GetByte(i);
-
-    return w;
-}
-
-uint16_t BV_GetWord(const ByteVector& bv)
-{
-    ByteVector::const_iterator i= bv.begin();
-    return BV_GetWord(i);
-}
-uint16_t BV_GetWord(ByteVector::const_iterator &i)
-{
-    uint16_t w= BV_GetByte(i);
-    w= w | ( BV_GetByte(i)<<8 );
 
     return w;
 }
@@ -209,25 +154,6 @@ uint32_t BV_GetNetDword(ByteVector::const_iterator &i)
     return w;
 }
 
-uint32_t BV_GetDword(const ByteVector& bv)
-{
-    ByteVector::const_iterator i= bv.begin();
-    return BV_GetDword(i);
-}
-uint32_t BV_GetDword(ByteVector::const_iterator &i)
-{
-    uint32_t w= BV_GetWord(i);
-    w= w | ( BV_GetWord(i)<<16 );
-
-    return w;
-}
-uint64_t BV_GetQword(ByteVector::const_iterator &i)
-{
-    uint64_t w= BV_GetDword(i);
-    w= w | ( ( (uint64_t )BV_GetDword(i))<<32 );
-
-    return w;
-}
 // these create temp objects
 std::string BV_GetString(const ByteVector& bv, int len)
 {
@@ -502,4 +428,82 @@ template<> std::vector<std::string> MakeVector(int n, ...)
     return v;
 }
 #endif
+#endif
+void BV_AppendByte(ByteVector& v, uint8_t value)
+{
+    v.push_back(value);
+}
+
+
+void BV_AppendWord(ByteVector& v, uint16_t value)
+{
+    BV_AppendByte(v, uint8_t(value));
+    BV_AppendByte(v, uint8_t(value>>8));
+}
+
+void BV_AppendDword(ByteVector& v, uint32_t value)
+{
+    BV_AppendWord(v, uint16_t(value));
+    BV_AppendWord(v, uint16_t(value>>16));
+}
+void BV_AppendWString(ByteVector& v, const std::Wstring& s)
+{
+    for (std::Wstring::const_iterator i= s.begin() ; i!=s.end() ; ++i)
+        BV_AppendWord(v, uint16_t(*i));
+}
+
+ByteVector BV_FromDword(uint32_t value)
+{
+    return ByteVector((uint8_t*)&value, 4+(uint8_t*)&value);
+}
+ByteVector BV_FromWString(const std::Wstring& wstr)
+{
+    if (wstr.empty())
+        return ByteVector();
+    return ByteVector((uint8_t*)iteratorptr(wstr.begin()), (uint8_t*)(iteratorptr(wstr.end()-1)+1));
+}
+
+uint32_t BV_GetDword(const ByteVector& bv)
+{
+    ByteVector::const_iterator i= bv.begin();
+    return BV_GetDword(i);
+}
+uint8_t BV_GetByte(ByteVector::const_iterator &i)
+{
+    return *i++;
+}
+uint8_t BV_GetByte(const ByteVector& bv)
+{
+    ByteVector::const_iterator i= bv.begin();
+    return BV_GetByte(i);
+}
+uint16_t BV_GetWord(ByteVector::const_iterator &i)
+{
+    uint16_t w= BV_GetByte(i);
+    w= w | ( BV_GetByte(i)<<8 );
+
+    return w;
+}
+
+uint16_t BV_GetWord(const ByteVector& bv)
+{
+    ByteVector::const_iterator i= bv.begin();
+    return BV_GetWord(i);
+}
+
+
+uint32_t BV_GetDword(ByteVector::const_iterator &i)
+{
+    uint32_t w= BV_GetWord(i);
+    w= w | ( BV_GetWord(i)<<16 );
+
+    return w;
+}
+uint64_t BV_GetQword(ByteVector::const_iterator &i)
+{
+    uint64_t w= BV_GetDword(i);
+    w= w | ( ( (uint64_t )BV_GetDword(i))<<32 );
+
+    return w;
+}
 

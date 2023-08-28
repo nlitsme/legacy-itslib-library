@@ -52,31 +52,32 @@ template<> std::vector<std::string> MakeVector(int n, ...);
 
 // NOTE: the checked stl cannot take iteratorptr(v.end())
 #define iteratorptr(v)  (&(*(v)))
-
+void BV_AppendWord(ByteVector& v, uint16_t b);
+void BV_AppendWString(ByteVector& v, const std::Wstring& s);
+ByteVector BV_FromDword(uint32_t value);
+ByteVector BV_FromWString(const std::Wstring& wstr);
+uint32_t BV_GetDword(ByteVector::const_iterator &i);
+uint32_t BV_GetDword(const ByteVector& bv);
+void BV_AppendDword(ByteVector& v, uint32_t b);
+#if 0
 void DV_AppendPtr(DwordVector& v, void *ptr);
 void *DV_GetPtr(DwordVector::const_iterator& i);
 void BV_AppendByte(ByteVector& v, uint8_t b);
 void BV_AppendBytes(ByteVector& v, const uint8_t *b, int len);
-void BV_AppendWord(ByteVector& v, uint16_t b);
-void BV_AppendDword(ByteVector& v, uint32_t b);
 void BV_AppendQword(ByteVector& v, uint64_t b);
 void BV_AppendNetWord(ByteVector& v, uint16_t b);
 void BV_AppendNetDword(ByteVector& v, uint32_t b);
 void BV_AppendVector(ByteVector& v1, const ByteVector& v2);
 void BV_AppendString(ByteVector& v, const std::string& s);
 void BV_AppendTString(ByteVector& v, const std::tstring& s);
-void BV_AppendWString(ByteVector& v, const std::Wstring& s);
 void BV_AppendRange(ByteVector& v, const ByteVector::const_iterator& begin, const ByteVector::const_iterator& end);
 
 ByteVector BV_FromBuffer(uint8_t* buf, int len);
-ByteVector BV_FromDword(uint32_t value);
 ByteVector BV_FromString(const std::string& str);
-ByteVector BV_FromWString(const std::Wstring& wstr);
 
 uint8_t BV_GetByte(ByteVector::const_iterator &i);
 uint16_t BV_GetWord(ByteVector::const_iterator &i);
 uint16_t BV_GetNetWord(ByteVector::const_iterator &i);
-uint32_t BV_GetDword(ByteVector::const_iterator &i);
 uint64_t BV_GetQword(ByteVector::const_iterator &i);
 uint32_t BV_GetNetDword(ByteVector::const_iterator &i);
 
@@ -97,7 +98,6 @@ std::Wstring* BV_MakeWString(const ByteVector& bv, int len);
 uint8_t BV_GetByte(const ByteVector& bv);
 uint16_t BV_GetWord(const ByteVector& bv);
 uint16_t BV_GetNetWord(const ByteVector& bv);
-uint32_t BV_GetDword(const ByteVector& bv);
 uint32_t BV_GetNetDword(const ByteVector& bv);
 
 // bufpack/bufunpack are vaguely based on perl's pack/unpack
@@ -107,7 +107,7 @@ DwordVector bufunpack(const ByteVector& buf, const char *fmt);
 
 ByteVector bufpack(const char*fmt, ...);
 void bufunpack2(const ByteVector& bv, const char*fmt, ...);
-
+#endif
 
 template<typename T>
 bool beginswith(const T& v, const T& w)
