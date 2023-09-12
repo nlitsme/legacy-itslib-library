@@ -59,16 +59,16 @@ ByteVector BV_FromWString(const std::Wstring& wstr);
 uint32_t BV_GetDword(ByteVector::const_iterator &i);
 uint32_t BV_GetDword(const ByteVector& bv);
 void BV_AppendDword(ByteVector& v, uint32_t b);
+void BV_AppendByte(ByteVector& v, uint8_t b);
+void BV_AppendBytes(ByteVector& v, const uint8_t *b, int len);
+void BV_AppendVector(ByteVector& v1, const ByteVector& v2);
+void BV_AppendString(ByteVector& v, const std::string& s);
 #if 0
 void DV_AppendPtr(DwordVector& v, void *ptr);
 void *DV_GetPtr(DwordVector::const_iterator& i);
-void BV_AppendByte(ByteVector& v, uint8_t b);
-void BV_AppendBytes(ByteVector& v, const uint8_t *b, int len);
 void BV_AppendQword(ByteVector& v, uint64_t b);
 void BV_AppendNetWord(ByteVector& v, uint16_t b);
 void BV_AppendNetDword(ByteVector& v, uint32_t b);
-void BV_AppendVector(ByteVector& v1, const ByteVector& v2);
-void BV_AppendString(ByteVector& v, const std::string& s);
 void BV_AppendTString(ByteVector& v, const std::tstring& s);
 void BV_AppendRange(ByteVector& v, const ByteVector::const_iterator& begin, const ByteVector::const_iterator& end);
 

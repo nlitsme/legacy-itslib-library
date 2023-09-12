@@ -46,12 +46,6 @@ void *DV_GetPtr(DwordVector::const_iterator& i)
     return ptr;
 }
 
-void BV_AppendBytes(ByteVector& v, const uint8_t *value, int len)
-{
-	while( len-- )
-	    v.push_back(*value++);
-}
-
 void BV_AppendQword(ByteVector& v, uint64_t value)
 {
     BV_AppendDword(v, uint32_t(value));
@@ -70,15 +64,6 @@ void BV_AppendNetDword(ByteVector& v, uint32_t value)
     BV_AppendNetWord(v, uint16_t(value));
 }
 
-void BV_AppendVector(ByteVector& v1, const ByteVector& v2)
-{
-    v1.insert(v1.end(), v2.begin(), v2.end());
-}
-void BV_AppendString(ByteVector& v, const std::string& s)
-{
-    for (std::string::const_iterator i= s.begin() ; i!=s.end() ; ++i)
-        BV_AppendByte(v, uint8_t(*i));
-}
 void BV_AppendTString(ByteVector& v, const std::tstring& s)
 {
 #ifdef _UNICODE
@@ -429,11 +414,26 @@ template<> std::vector<std::string> MakeVector(int n, ...)
 }
 #endif
 #endif
+void BV_AppendBytes(ByteVector& v, const uint8_t *value, int len)
+{
+	while( len-- )
+	    v.push_back(*value++);
+}
+
+void BV_AppendVector(ByteVector& v1, const ByteVector& v2)
+{
+    v1.insert(v1.end(), v2.begin(), v2.end());
+}
 void BV_AppendByte(ByteVector& v, uint8_t value)
 {
     v.push_back(value);
 }
 
+void BV_AppendString(ByteVector& v, const std::string& s)
+{
+    for (std::string::const_iterator i= s.begin() ; i!=s.end() ; ++i)
+        BV_AppendByte(v, uint8_t(*i));
+}
 
 void BV_AppendWord(ByteVector& v, uint16_t value)
 {
