@@ -571,9 +571,9 @@ ByteVector base64_decode(const std::string& str)
     switch(n)
     {
         // fall through all!!
-        case 1: value <<= 6;
-        case 2: value <<= 6;
-        case 3: value <<= 6;
+        case 1: value <<= 6;  [[fallthrough]];
+        case 2: value <<= 6;  [[fallthrough]];
+        case 3: value <<= 6;  [[fallthrough]];
         case 4: break;
         case 0: break;
     } 
