@@ -93,8 +93,8 @@ class MmapReader : public MemoryReader {
     ipc::mapped_region _region;
 
     // no default, copy constructor
-    MmapReader() { }
-    MmapReader(const MmapReader&) { }
+    MmapReader() = delete;
+    MmapReader(const MmapReader&) = delete;
 public:
 
     // so we can use make_range
