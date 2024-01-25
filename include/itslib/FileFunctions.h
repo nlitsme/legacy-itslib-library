@@ -10,6 +10,7 @@
 #include "stringutils.h"
 #include "debug.h"
 #include <string>
+#include <climits>
 #ifndef _WIN32
 #include <sys/stat.h>
 #include <stdio.h>
@@ -18,11 +19,7 @@ typedef FILE* FFHANDLE;
 #else
 typedef HANDLE FFHANDLE;
 #endif
-
-#define AT_NONEXISTANT      1
-#define AT_ISDIRECTORY      2
-#define AT_ISFILE           3
-#define AT_ISSTREAM         4
+#define logerror error
 
 
 template<typename T>
@@ -40,19 +37,20 @@ bool WriteFileData(const std::basic_string<T>& filename, const ByteVector& data)
     }
     if (!CloseHandle(h))
     {
-        error("WriteFileData: CloseHandle");
+        logerror("WriteFileData: CloseHandle");
         return false;
     }
 
     return true;
-#else
+#endif
+#ifdef _UNIX
     if (data.size() && 1!=fwrite(&data[0], data.size(), 1, h)) {
         fclose(h);
-        error("fwrite");
+        logerror("fwrite");
         return false;
     }
     if (fclose(h)) {
-        error("fclose");
+        logerror("fclose");
         return false;
     }
     return true;
@@ -65,12 +63,12 @@ uint64_t GetFileSize(const std::basic_string<T>& path)
 #ifdef _WIN32
     // "[A-Za-z]:"
     if (path.size()==2 && path[1]==':' && isalpha(path[0]))
-        return AT_ISDIRECTORY;
+        return -1;  // is disk
     // "[A-Za-z]:[/\\]"
     if (path.size()==3 && (path[2]=='/' || path[2]=='\\') && path[1]==':' && isalpha(path[0]))
-        return AT_ISDIRECTORY;
+        return -1;  // is dir
     WIN32_FIND_DATA wfd;
-    FFHANDLE hFind = FindFirstFile( ToTString(path).c_str(), &wfd);
+    auto hFind = FindFirstFile( ToTString(path).c_str(), &wfd);
     if (INVALID_HANDLE_VALUE == hFind)
         return -1;
 
@@ -80,7 +78,8 @@ uint64_t GetFileSize(const std::basic_string<T>& path)
         return -1;
 
     return (uint64_t(wfd.nFileSizeHigh)<<32) | wfd.nFileSizeLow;
-#else
+#endif
+#ifdef _UNIX
     struct stat st;
     if (stat(ToString(path).c_str(), &st))
         return -1;
@@ -106,23 +105,24 @@ inline uint64_t GetFileSize(FFHANDLE h)
     if (fsLow==INVALID_FILE_SIZE && GetLastError())
         return uint64_t(-1);
     return ((uint64_t)fsHigh<<32)|(uint64_t)fsLow;
-#else
+#endif
+#ifdef _UNIX
     fpos_t orgpos;
     if (fgetpos(h, &orgpos)) {
-        error("fgetpos");
+        logerror("fgetpos");
         return uint64_t(-1);
     }
     if (fseeko(h, 0, SEEK_END)) {
-        error("fseek");
+        logerror("fseek");
         return uint64_t(-1);
     }
     off_t eofoff= ftello(h);
     if (eofoff==off_t(-1)) {
-        error("ftello");
+        logerror("ftello");
         return uint64_t(-1);
     }
     if (fsetpos(h, &orgpos)) {
-        error("fseek");
+        logerror("fseek");
         return uint64_t(-1);
     }
     return eofoff;
@@ -132,6 +132,11 @@ bool ReadDword(FFHANDLE f, uint32_t &w);
 bool ReadData(FFHANDLE f, ByteVector& data, size_t size=size_t(~0));
 bool WriteData(FFHANDLE f, const ByteVector& data);
 bool WriteDword(FFHANDLE f, uint32_t w);
+
+#define AT_NONEXISTANT      1
+#define AT_ISDIRECTORY      2
+#define AT_ISFILE           3
+#define AT_ISSTREAM         4
 
 template<typename T>
 int GetFileInfo(const std::basic_string<T>& path)
@@ -154,7 +159,8 @@ int GetFileInfo(const std::basic_string<T>& path)
         return AT_ISDIRECTORY;
 
     return AT_ISFILE;
-#else
+#endif
+#ifdef _UNIX
     struct stat st;
     if (stat(ToString(path).c_str(), &st))
         return AT_NONEXISTANT;
@@ -177,7 +183,8 @@ bool CreateDirectory(const std::basic_string<T>& dirname)
 #ifdef _WIN32
     if (!CreateDirectory(ToTString(dirname).c_str(), NULL))
         return false;
-#else
+#endif
+#ifdef _UNIX
     if (mkdir(ToString(dirname).c_str(), 0755))
         return false;
 #endif
@@ -196,12 +203,12 @@ bool CreateDirPath(const std::basic_string<T>& dirname)
         std::basic_string<T> partialpath= dirname.substr(0, i);
         if (GetFileInfo(partialpath)==AT_NONEXISTANT
             && !CreateDirectory(partialpath)) {
-            error("CreateDirectory([%d]%ls)", i, partialpath.c_str());
+            logerror("CreateDirectory([%d]%ls)", i, partialpath.c_str());
             return false;
         }
     }
-    if (dirname.size()>1 && !CreateDirectory(dirname)) {
-        error("CreateDirectory(%s)", dirname.c_str());
+    if (dirname.size()>1 && GetFileInfo(dirname)==AT_NONEXISTANT && !CreateDirectory(dirname)) {
+        logerror("CreateDirectory(%s)", dirname.c_str());
         return false;
     }
     return true;
@@ -219,6 +226,28 @@ inline bool do_recurse_dirs(const std::string& filename) { return true; }
 template<typename F, typename D>
 bool dir_iterator(const std::string& path, F f, D d)
 {
+#ifdef _UNIX
+    DIR* dirp= opendir(path.c_str());
+    if (dirp==NULL)
+        return false;
+    struct dirent *dp;
+    while ((dp=readdir(dirp))!=NULL) {
+        std::string name= dp->d_name;
+        if (name=="." || name=="..")
+            continue;
+        std::string fullname= path+"/"+name;
+        if (dp->d_type==DT_DIR && d(fullname)) {
+            dir_iterator(fullname, f, d);
+        }
+        else if (dp->d_type==DT_REG)
+            f(fullname);
+        else {
+            // not following symlinks
+            // not handling devices/pipes
+        }
+    }
+    closedir(dirp);
+#endif
 #ifdef _WIN32
     WIN32_FIND_DATA wfd;
     FFHANDLE hFind = FindFirstFile(ToTString(path+"\\*.*").c_str(), &wfd);
@@ -241,27 +270,6 @@ bool dir_iterator(const std::string& path, F f, D d)
         }
     } while (FindNextFile(hFind, &wfd));
     FindClose(hFind);
-#else
-    DIR* dirp= opendir(path.c_str());
-    if (dirp==NULL)
-        return false;
-    struct dirent *dp;
-    while ((dp=readdir(dirp))!=NULL) {
-        std::string name= dp->d_name;
-        if (name=="." || name=="..")
-            continue;
-        std::string fullname= path+"/"+name;
-        if (dp->d_type==DT_DIR && d(fullname)) {
-            dir_iterator(fullname, f, d);
-        }
-        else if (dp->d_type==DT_REG)
-            f(fullname);
-        else {
-            // not following symlinks
-            // not handling devices/pipes
-        }
-    }
-    closedir(dirp);
 #endif
     return true;
 }
@@ -274,15 +282,16 @@ bool OpenFileForReading(const std::basic_string<T>& filename, FFHANDLE& handle)
                 NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h==INVALID_HANDLE_VALUE || h==NULL)
     {
-        error("CreateFile(%ls, READ)", filename.c_str());
+        logerror("CreateFile(%ls, READ)", filename.c_str());
         return false;
     }
     handle= h;
 
-#else
+#endif
+#ifdef _UNIX
     FILE *f= fopen(ToString(filename).c_str(), "r");
     if (f==NULL) {
-        error("fopen(%s)", ToString(filename).c_str());
+        logerror("fopen(%s)", ToString(filename).c_str());
         return false;
     }
     handle= f;
@@ -297,14 +306,15 @@ bool OpenFileForWriting(const std::basic_string<T>& filename, FFHANDLE& handle)
                 NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (h==INVALID_HANDLE_VALUE || h==NULL)
     {
-        error("CreateFile(%ls, WRITE)", filename.c_str());
+        logerror("CreateFile(%ls, WRITE)", filename.c_str());
         return false;
     }
     handle= h;
-#else
+#endif
+#ifdef _UNIX
     FILE *f= fopen(ToString(filename).c_str(), "w+");
     if (f==NULL) {
-        error("fopen(%s)", ToString(filename).c_str());
+        logerror("fopen(%s)", ToString(filename).c_str());
         return false;
     }
     handle= f;
@@ -316,12 +326,13 @@ bool DeleteFile(const std::basic_string<T>& filename)
 {
 #ifdef _WIN32
     if (!DeleteFile(ToTString(filename).c_str())) {
-        error("DeleteFile");
+        logerror("DeleteFile");
         return false;
     }
-#else
+#endif
+#ifdef _UNIX
     if (unlink(ToString(filename).c_str())) {
-        error("unlink");
+        logerror("unlink");
         return false;
     }
 #endif
@@ -332,7 +343,8 @@ inline void CloseFile(FFHANDLE h)
 {
 #ifdef _WIN32
     CloseHandle(h);
-#else
+#endif
+#ifdef _UNIX
     fclose(h);
 #endif
 }
@@ -363,32 +375,33 @@ bool LoadFileData(const std::basic_string<T>& filename, V& data, uint64_t off=0,
     DWORD res= SetFilePointer(h, offLow, &offHigh, FILE_BEGIN);
     if (res==INVALID_SET_FILE_POINTER && GetLastError()!=NO_ERROR)
     {
-        error("LoadFileData: invalid offset %x%08lx\n", offHigh, offLow);
+        logerror("LoadFileData: invalid offset %x%08lx\n", offHigh, offLow);
         CloseHandle(h);
         return false;
     }
 
     DWORD read=0;
-    if (!data.empty() && !ReadFile(h, &data[0], data.size()*sizeof(V::value_type), &read, NULL))
+    if (!data.empty() && !ReadFile(h, &data[0], data.size()*sizeof(typename V::value_type), &read, NULL))
     {
         CloseHandle(h);
         return false;
     }
-    data.resize(read/sizeof(V::value_type));
+    data.resize(read/sizeof(typename V::value_type));
     if (!CloseHandle(h))
     {
-        error("LoadFileData: CloseHandle");
+        logerror("LoadFileData: CloseHandle");
         return false;
     }
 
-#else
+#endif
+#ifdef _UNIX
     if (fseeko(h, 0, SEEK_END)) {
-        error("fseek");
+        logerror("fseek");
         return false;
     }
     uint64_t eofpos= ftello(h);;
 //  if (fgetpos(h, &eofpos)) {
-//      error("fgetpos");
+//      logerror("fgetpos");
 //      return false;
 //  }
     if (off>eofpos) {
@@ -397,7 +410,7 @@ bool LoadFileData(const std::basic_string<T>& filename, V& data, uint64_t off=0,
         return false;
     }
     if (fseeko(h, off, SEEK_SET)) {
-        error("fseek");
+        logerror("fseek");
         fclose(h);
         return false;
     }
@@ -405,14 +418,21 @@ bool LoadFileData(const std::basic_string<T>& filename, V& data, uint64_t off=0,
         size= eofpos-off;
     else if (size>size_t(eofpos-off))
         size= eofpos-off;
+
+    if (size>=INT_MAX) {
+        fclose(h);
+        return false;
+    }
+
     data.resize(size/sizeof(typename V::value_type));
+
     if (!data.empty() && 1!=fread(&data[0], data.size()*sizeof(typename V::value_type), 1, h)) {
         fclose(h);
-        error("fread");
+        logerror("fread");
         return false;
     }
     if (fclose(h)) {
-        error("fclose");
+        logerror("fclose");
         return false;
     }
 #endif

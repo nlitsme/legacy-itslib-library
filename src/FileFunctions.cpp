@@ -20,12 +20,13 @@ bool ReadDword(FFHANDLE f, uint32_t &w)
     DWORD read;
     if (!ReadFile(f, &w, sizeof(uint32_t), &read, NULL))
     {
-        error("ReadFile");
+        logerror("ReadFile");
         return false;
     }
-#else
+#endif
+#ifdef _UNIX
     if (1!=fread(&w, sizeof(w), 1, f)) {
-        error("ReadDword-fread");
+        logerror("ReadDword-fread");
         return false;
     }
 #endif
@@ -43,27 +44,28 @@ bool ReadData(FFHANDLE f, ByteVector& data, size_t size/*=~0*/)
     DWORD read;
     if (!ReadFile(f, vectorptr(data), size, &read, NULL))
     {
-        error("ReadFile");
+        logerror("ReadFile");
         return false;
     }
-#else
+#endif
+#ifdef _UNIX
     if (size==size_t(~0)) {
 	    uint64_t curpos=ftello(f);
 //    if (fgetpos(f, &curpos)) {
-//	error("fgetpos");
+//	logerror("fgetpos");
 //	return false;
 //    }
 	    if (fseeko(f, 0, SEEK_END)) {
-		error("fseek");
+		logerror("fseek");
 		return false;
 	    }
 	    uint64_t eofpos=ftello(f);
 //    if (fgetpos(f, &eofpos)) {
-//	error("fgetpos");
+//	logerror("fgetpos");
 //	return false;
 //    }
 	    if (fseeko(f, curpos, SEEK_SET)) {
-		error("fseek");
+		logerror("fseek");
 		return false;
 	    }
 	    size= eofpos-curpos;
@@ -72,7 +74,7 @@ bool ReadData(FFHANDLE f, ByteVector& data, size_t size/*=~0*/)
     data.resize(size);
 
     if (1!=fread(vectorptr(data), data.size(), 1, f)) {
-        error("ReadData-fread");
+        logerror("ReadData-fread");
         return false;
     }
 #endif
@@ -87,12 +89,13 @@ bool WriteData(FFHANDLE f, const ByteVector& data)
     DWORD wrote;
     if (!WriteFile(f, &data.front(), data.size(), &wrote, NULL))
     {
-        error("WriteFile");
+        logerror("WriteFile");
         return false;
     }
-#else
+#endif
+#ifdef _UNIX
     if (1!=fwrite(&data.front(), data.size(), 1, f)) {
-        error("fwrite");
+        logerror("fwrite");
         return false;
     }
 #endif
@@ -104,12 +107,13 @@ bool WriteDword(FFHANDLE f, uint32_t w)
     DWORD wrote;
     if (!WriteFile(f, &w, sizeof(uint32_t), &wrote, NULL))
     {
-        error("WriteFile");
+        logerror("WriteFile");
         return false;
     }
-#else
+#endif
+#ifdef _UNIX
     if (1!=fwrite(&w, sizeof(w), 1, f)) {
-        error("fwrite");
+        logerror("fwrite");
         return false;
     }
 #endif
@@ -124,8 +128,7 @@ uint64_t GetFilesystemFreeSpace(const std::string& path)
         return uint64_t(-1);
 
     return ul.QuadPart;
-#endif
-#ifdef _UNIX
+#else
     struct statvfs st;
     if (-1==statvfs(path.c_str(), &st))
         return uint64_t(-1);
