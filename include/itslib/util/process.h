@@ -145,6 +145,11 @@ public:
             logmsg("\nservice: %p %s E:- %s\n", this, name(), e);
             handle_error();
         }
+        catch(std::exception& e)
+        {
+            logmsg("\nservice: %p %s E:- %s\n", this, name(), e.what());
+            handle_error();
+        }
         catch(...)
         {
             logmsg("error in service %p %s\n", this, name());
