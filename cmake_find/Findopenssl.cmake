@@ -20,8 +20,12 @@ elseif(WIN32)
               "c:/Program Files/OpenSSL-Win64/lib")
 
 else()
-    find_package(OpenSSL)
+    if (NOT DARWIN AND NOT WIN32)
+        # does not work on macos+windows, because on a caseinsensitive FS this will recurse.
+        find_package(OpenSSL)
+    endif()
     if (OpenSSL_FOUND)
+        add_definitions(-DOPENSSL_SUPPRESS_DEPRECATED)
         return()
     endif()
 
