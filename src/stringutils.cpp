@@ -27,7 +27,7 @@ int strcasecmp(const char *, const char *);
 #ifdef __GNUC__
 #include <errno.h>
 #endif
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__MINGW32__)
 
 // MSVC: the buffer is assumed to contain a 0 at buf[size]
 // NOTE: with gcc, you'd have to specify str.size()+1

@@ -10,7 +10,7 @@
 #include <errno.h>
 inline uint32_t GetLastError() { return errno; }
 #endif
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <windows.h>
 #include <tchar.h>
 #elif defined(USING_SYNCE)
